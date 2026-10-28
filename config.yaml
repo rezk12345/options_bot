@@ -1,0 +1,53 @@
+# ---------------------------------------------------------------
+# End-of-day options trading bot — configuration
+# ---------------------------------------------------------------
+
+data:
+  source: thetadata          # thetadata | synthetic
+  root: SPY                  # underlying
+  start: "2021-01-04"
+  end:   "2023-12-29"
+  cache_dir: data_cache
+
+thetadata:
+  # Theta Terminal must be running locally (java -jar ThetaTerminal.jar <user> <pass>)
+  base_url: http://127.0.0.1:25510
+  timeout: 30
+
+contract:
+  min_dte: 5                 # pick the nearest expiration at least this many days out
+  max_dte: 21
+  moneyness: 0.0             # 0 = ATM; +0.01 = strike 1% OTM
+  strike_step: 1.0           # strike grid of the underlying (SPY = $1)
+
+strategy:
+  signal: advanced           # basic | advanced
+  hold_days: 1               # buy at today's close, sell at close N days later
+  basic:
+    lookback: 1              # compare today's close with the close N days ago
+    threshold: 0.005         # need a move of at least 0.5% to trade
+    mode: mean_reversion     # mean_reversion (fade the move) | momentum (follow it)
+  advanced:
+    rsi_period: 3            # short RSI catches 2-3 day pullbacks inside a trend
+    rsi_oversold: 20         # RSI below -> buy call
+    rsi_overbought: 80       # RSI above -> buy put
+    trend_sma: 200           # only buy calls above / puts below this SMA (0 disables)
+    vol_window: 20
+    max_iv_premium: 1.30     # skip trades when implied vol > 1.3x realised vol (options too rich)
+    min_move: 0.003          # require at least a 0.3% move in the signal's direction-reversal sense
+
+execution:
+  fill: mid_plus_slippage    # mid_plus_slippage | close
+  slippage_pct_of_spread: 0.5   # share of the half-spread paid beyond mid: 0 = mid, 1 = full ask/bid
+  commission_per_contract: 0.65
+  contract_multiplier: 100
+
+risk:
+  initial_capital: 25000
+  risk_per_trade: 0.02       # premium spent per trade as fraction of equity
+  max_contracts: 50
+  stop_loss_pct: 0.50        # exit early if option loses 50% (checked at each close)
+  take_profit_pct: 1.00      # exit early at +100%
+
+report:
+  out_dir: reports
